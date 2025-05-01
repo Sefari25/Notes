@@ -1,0 +1,158 @@
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QMessageBox, QRadioButton, QGroupBox, QTextEdit, QListWidget, QLineEdit, QInputDialog
+import json
+
+notes = {
+    'планеты':
+        {
+            'текст': 'на планете венера есть жизнь?',
+            'теги': ['венера', 'инопланетяне']
+
+        },
+    'микроскопическиемикробыхинфузориитуфельки':
+        {
+            'текст': 'почему их назвали туфельками если они не объёмные?',
+            'теги': ['микроскопическиемикробыинфузориитуфельки', 'объём']
+
+        }
+}
+
+
+app = QApplication([])
+main_win = QWidget()
+main_win.setWindowTitle('Умные заметки')
+spisok1 = QListWidget()
+spisok2 = QListWidget()
+dobavit_teg = QPushButton('Добавить к заметке')
+udalit_teg = QPushButton('Открепить от заметки')
+iskat_teg = QPushButton('Искать заметку по тэгу')
+dobavit_zam = QPushButton('Создать заметку')
+udalit_zam = QPushButton('Удалить заметку')
+iskat_zam = QPushButton('Сохранить заметку')
+Zametki = QTextEdit()
+vvedite_teg = QLineEdit()
+vvedite_teg.setPlaceholderText('Введите тэг...')
+Label1 = QLabel('Список заметок')
+Label2 = QLabel('Список тэгов')
+
+LayoutV1 = QVBoxLayout()
+LayoutV2 = QVBoxLayout()
+LayoutH1 = QHBoxLayout()
+LayoutH2 = QHBoxLayout()
+LayoutV1.addWidget(Label1)
+LayoutV1.addWidget(spisok1)
+LayoutH1.addWidget(dobavit_zam)
+LayoutH1.addWidget(udalit_zam)
+LayoutV1.addLayout(LayoutH1)
+LayoutV1.addWidget(iskat_zam)
+LayoutV1.addWidget(Label2)
+LayoutV1.addWidget(spisok2)
+LayoutV1.addWidget(vvedite_teg)
+LayoutH2.addWidget(dobavit_teg)
+LayoutH2.addWidget(udalit_teg)
+LayoutV1.addLayout(LayoutH2)
+LayoutV1.addWidget(iskat_teg)
+LayoutV2.addWidget(Zametki)
+
+Layout_main = QHBoxLayout()
+Layout_main.addLayout(LayoutV2)
+Layout_main.addLayout(LayoutV1)
+main_win.setLayout(Layout_main)
+
+def show_note():
+    name = spisok1.selectedItems()[0].text()
+    Zametki.setText(notes[name]['текст'])
+    spisok2.clear()
+    spisok2.addItems(notes[name]['теги'])
+
+def add_note():
+    htg, result = QInputDialog.getText(main_win, 'Добавить заметку', 'Название заметки')
+    if htg and result != '':
+        notes[htg] = {'текст': '', 'теги': []}
+        spisok1.addItem(htg)
+        spisok2.addItems(notes[htg]['теги'])
+
+def del_note():
+    if spisok1.selectedItems():   
+        udalennoe = spisok1.selectedItems()[0].text()
+        del notes[udalennoe]
+        spisok1.clear()
+        spisok2.clear()
+        Zametki.clear()
+        spisok1.addItems(notes)
+        with open('notes_data.json', 'w', encoding='utf=8') as file:
+            json.dump(notes, file, sort_keys = True)
+
+def save_note():
+    if spisok1.selectedItems():
+        udalennoe = spisok1.selectedItems()[0].text()
+        notes[udalennoe]['текст'] = Zametki.toPlainText()
+        with open('notes_data.json', 'a', encoding='utf=8') as file:
+          json.dump(notes, file, sort_keys = True)
+
+
+
+def del_teg():
+    if spisok1.selectedItems():
+        udalennoe2 = spisok1.selectedItems()[0].text()
+        udalennoe3 = spisok2.selectedItems()[0].text()
+        notes[udalennoe2]['теги'].remove(udalennoe3)
+        spisok2.clear()
+        spisok2.addItems(notes[udalennoe2]['теги'])
+        with open('notes_data.json', 'w', encoding='utf=8') as file:
+            json.dump(notes, file, sort_keys = True)
+
+
+
+def search_note():
+    tag = vvedite_teg.text()
+    if iskat_teg.text() == 'Искать заметку по тэгу' and tag:
+        notes_tags = {}
+        for note in notes:
+            if tag in notes[note]['теги']:
+                notes_tags[note]=notes[note]
+        iskat_teg.setText('Сбросить поиск')
+        spisok1.clear()
+        spisok2.clear()
+        spisok1.addItems(notes_tags)
+    elif iskat_teg.text() == 'Сбросить поиск':
+        vvedite_teg.clear()
+        spisok1.clear()
+        spisok2.clear()
+        spisok1.addItems(notes)
+        iskat_teg.setText('Искать заметку по тэгу')
+    else:
+        pass
+
+def save_teg():
+    if spisok1.selectedItems():
+        udalennoe4 = spisok1.selectedItems()[0].text()
+        tag2 = vvedite_teg.text()
+        if not tag2 in notes[udalennoe4]['теги']:
+            notes[udalennoe4]['теги'].append(tag2)
+            spisok2.addItem(tag2)
+            vvedite_teg.clear()
+        with open('notes_data.json', 'w', encoding='utf=8') as file:
+            json.dump(notes, file, sort_keys = True)
+        
+
+spisok1.itemClicked.connect(show_note)
+dobavit_zam.clicked.connect(add_note)
+udalit_zam.clicked.connect(del_note)
+iskat_zam.clicked.connect(save_note)
+udalit_teg.clicked.connect(del_teg)
+iskat_teg.clicked.connect(search_note)
+dobavit_teg.clicked.connect(save_teg)
+
+
+
+list_notes = list()
+
+main_win.show()
+with open('notes_data.json', 'w', encoding='utf=8') as file:
+    json.dump(notes, file)
+
+with open('notes_data.json', 'r', encoding='utf=8') as file:
+    data = json.load(file)
+spisok1.addItems(data)
+app.exec_()
